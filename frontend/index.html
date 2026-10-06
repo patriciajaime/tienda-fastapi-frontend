@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administrador de Productos - Tienda</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 30px auto; padding: 0 20px; }
+        h1, h2 { color: #333; }
+        .card { background: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 20px; }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; margin-bottom: 4px; font-weight: bold; }
+        input { width: 100%; padding: 8px; box-sizing: border-box; }
+        button { background-color: #28a745; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 4px; }
+        button:hover { background-color: #218838; }
+        .btn-delete { background-color: #dc3545; padding: 5px 10px; font-size: 12px; }
+        .btn-delete:hover { background-color: #c82333; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+
+    <h1>Gestión de Productos de la Tienda</h1>
+
+    <!-- Formulario para agregar producto -->
+    <div class="card">
+        <h2>Agregar Nuevo Producto (POST)</h2>
+        <form id="form-producto">
+            <div class="form-group">
+                <label for="id">ID:</label>
+                <input type="number" id="id" required>
+            </div>
+            <div class="form-group">
+                <label for="nombre">Nombre:</label>
+                <input type="text" id="nombre" required>
+            </div>
+            <div class="form-group">
+                <label for="precio">Precio ($):</label>
+                <input type="number" step="0.01" id="precio" required>
+            </div>
+            <button type="submit">Agregar Producto</button>
+        </form>
+    </div>
+
+    <!-- Tabla para mostrar productos -->
+    <div class="card">
+        <h2>Lista de Productos (GET)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Precio</th>
+                    <th>Acción (DELETE)</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-productos"></tbody>
+        </table>
+    </div>
+
+    <script>
+        const API_URL = "http://localhost:8000/productos";
+
+        // GET: Cargar productos desde la API
+        async function cargarProductos() {
+            try {
+                const response = await fetch(API_URL);
+                const productos = await response.json();
+                
+                const tbody = document.getElementById("tabla-productos");
+                tbody.innerHTML = "";
+
+                productos.forEach(p => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td>${p.id}</td>
+                        <td>${p.nombre}</td>
+                        <td>$${p.precio.toFixed(2)}</td>
+                        <td><button class="btn-delete" onclick="eliminarProducto(${p.id})">Eliminar</button></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                console.error("Error al cargar productos:", error);
+            }
+        }
+
+        // POST: Agregar nuevo producto
+        document.getElementById("form-producto").addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const nuevoProducto = {
+                id: parseInt(document.getElementById("id").value),
+                nombre: document.getElementById("nombre").value,
+                precio: parseFloat(document.getElementById("precio").value)
+            };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(nuevoProducto)
+                });
+
+                if (response.ok) {
+                    alert("Producto agregado correctamente");
+                    document.getElementById("form-producto").reset();
+                    cargarProductos();
+                } else {
+                    const error = await response.json();
+                    alert("Error: " + error.detail);
+                }
+            } catch (error) {
+                console.error("Error al agregar producto:", error);
+            }
+        });
+
+        // DELETE: Eliminar producto
+        async function eliminarProducto(id) {
+            if (!confirm(`¿Deseas eliminar el producto con ID ${id}?`)) return;
+
+            try {
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: "DELETE"
+                });
+
+                if (response.ok) {
+                    alert("Producto eliminado");
+                    cargarProductos();
+                } else {
+                    alert("Error al eliminar el producto");
+                }
+            } catch (error) {
+                console.error("Error al eliminar producto:", error);
+            }
+        }
+
+        cargarProductos();
+    </script>
+</body>
+</html>
